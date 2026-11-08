@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # full history and tags for the release notes
 
       - name: Build zip
         run: |
@@ -24,6 +26,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Commit subjects since the previous tag, or all commits on the first release.
+          prev=$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null || true)
+          changes=$(git log --pretty='- %s' ${prev:+"$prev.."}"$GITHUB_REF_NAME")
           gh release create "$GITHUB_REF_NAME" Replay-Recording-Alerts-*.zip \
-            --title "${GITHUB_REF_NAME#v}" --generate-notes \
-            --notes "Download the zip below, extract it, and add \`Replay & Recording Alerts.lua\` in OBS under **Tools → Scripts**. See the [README](https://github.com/${GITHUB_REPOSITORY}#readme) for setup."
+            --title "${GITHUB_REF_NAME#v}" \
+            --notes "Download the zip below, extract it, and add \`Replay & Recording Alerts.lua\` in OBS under **Tools → Scripts**. See the [README](https://github.com/${GITHUB_REPOSITORY}#readme) for setup.
+
+          ## Changes
+          $changes"
