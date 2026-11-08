@@ -1,0 +1,29 @@
+# Pushing a tag like v1.2.0 builds the zip and publishes a GitHub release for it.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build zip
+        run: |
+          git archive --format=zip --prefix="Replay & Recording Alerts/" \
+            -o "Replay-Recording-Alerts-${GITHUB_REF_NAME#v}.zip" HEAD \
+            "Replay & Recording Alerts.lua" sound_npc_scanner_scanner_photo1.wav README.md LICENSE images
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" Replay-Recording-Alerts-*.zip \
+            --title "${GITHUB_REF_NAME#v}" --generate-notes \
+            --notes "Download the zip below, extract it, and add \`Replay & Recording Alerts.lua\` in OBS under **Tools → Scripts**. See the [README](https://github.com/${GITHUB_REPOSITORY}#readme) for setup."

@@ -20,7 +20,7 @@ An [OBS Studio](https://obsproject.com/) Lua script that plays a sound, shows a 
 
 ## Installation
 
-1. Download this repository. Keep the `.lua` and `.wav` files in the same folder.
+1. Download the zip from the [latest release](../../releases/latest) and extract it. Keep the `.lua` and `.wav` files in the same folder.
 2. In OBS, open **Tools → Scripts**, click **+** and pick `Replay & Recording Alerts.lua`.
 3. Enable the events you want and press **Test**.
 
