@@ -14,32 +14,33 @@ An [OBS Studio](https://obsproject.com/) Lua script that plays a sound, shows a 
 
 ![The script's settings in OBS's Scripts window](images/screenshot.png)
 
-- Each event has its own sound, volume and toast. For saves, the toast shows the file name.
-- Sounds play on OBS's **Monitoring Device** and stay out of recordings, unless Desktop Audio captures that device (see below).
-- Optionally record a sound to an audio track. A track other than 1 keeps a separate copy most video players won't play.
+- Each event has its own sound, volume and toast.
+- Sounds play on OBS's **Monitoring Device** and stay out of recordings, unless Desktop Audio captures that device too (see below).
+- Supports WAV, MP3, OGG, FLAC, M4A and Opus.
 
 ## Installation
 
 1. Download the zip from the [latest release](../../releases/latest) and extract it. Keep the `.lua` and `.wav` files in the same folder.
 2. In OBS, open **Tools → Scripts**, click **+** and pick `Replay & Recording Alerts.lua`.
-3. Enable the events you want and press **Test**.
+3. Enable the events you want, set them up as desired and press **Test**.
 
 ## Keeping sounds out of recordings
 
-Desktop Audio records everything on its device. If your Monitoring Device is the same device, the sounds get recorded too, and the script shows a warning.
+Desktop Audio records everything on its device. If your Monitoring Device is the same device, the sounds get recorded too.
 
-To fix it, pick another device in **Settings → Audio → Advanced → Monitoring Device** (for example, headphones while Desktop Audio captures speakers). Or capture game audio with **Application Audio Capture** instead of Desktop Audio.
+### Options to fix this
+- Pick another device in **Settings → Audio → Advanced → Monitoring Device** (for example, speakers while Desktop Audio captures headphones). Keep in mind that from that point on, the alert sound will play through that device instead of your main one.
+- Alternatively, switch from Desktop Audio to an **Application Audio Capture** source. This lets you capture main audio directly without altering your Monitoring Device setup.
 
 ## Notes
 
-- **Windows:** toasts come from *OBS Studio*, or from *Windows PowerShell* for a portable OBS. A new toast replaces the previous one.
+- **Windows:** toasts come from *OBS Studio*, or from *Windows PowerShell* for a portable OBS.
 - **macOS:** toasts come from *Script Editor*. Allow its notifications in System Settings → Notifications.
-- **Linux:** toasts need `notify-send` (`libnotify-bin` or `libnotify`), which the Flatpak OBS lacks.
-- Only tested on Windows.
+- **Linux:** toasts need `notify-send` program (`libnotify-bin` (Ubuntu / Debian / Mint) or `libnotify` (Arch / Fedora / RHEL / CentOS) packages).
 
 ## Reporting problems
 
-Before opening an [issue](../../issues), reproduce the problem and attach your OBS log (**Help → Log Files → Upload Current Log File**). The script logs each event and any toast errors there.
+Before opening an [issue](../../issues), reproduce the problem and attach your OBS log (**Help → Log Files → Upload Current Log File**). The script logs each event and any errors there.
 
 ## Credits
 
