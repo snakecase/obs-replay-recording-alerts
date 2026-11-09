@@ -4,7 +4,7 @@
 
 # Replay & Recording Alerts
 
-[![OBS Studio Lua script](https://img.shields.io/badge/OBS%20Studio-Lua%20script-000080?logo=obsstudio&logoColor=white&labelColor=2f3241)](https://obsproject.com/forum/resources/replay-recording-alerts.2836/)
+[![OBS Studio Lua script](https://img.shields.io/badge/OBS%20Studio-Lua%20script-000080?logo=obsstudio&logoColor=white&labelColor=2f3241)](https://obsproject.com/)
 [![Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-2e7d32?labelColor=2f3241)](#notes)
 [![License: CC0-1.0](https://img.shields.io/badge/License-CC0--1.0-blue?labelColor=2f3241)](LICENSE)
 
