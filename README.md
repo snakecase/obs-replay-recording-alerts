@@ -36,7 +36,7 @@ Desktop Audio records everything on its device. If your Monitoring Device is the
 
 - **Windows:** toasts come from *OBS Studio*, or from *Windows PowerShell* for a portable OBS.
 - **macOS:** toasts come from *Script Editor*. Allow its notifications in System Settings → Notifications.
-- **Linux:** toasts need `notify-send` program (`libnotify-bin` (Ubuntu / Debian / Mint) or `libnotify` (Arch / Fedora / RHEL / CentOS) packages).
+- **Linux:** toasts require the `notify-send` program (`libnotify-bin` package on Ubuntu / Debian / Mint or `libnotify` on Arch / Fedora / RHEL / CentOS).
 
 ## Reporting problems
 
