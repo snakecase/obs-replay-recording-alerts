@@ -49,4 +49,4 @@ Before opening an [issue](../../issues), reproduce the problem and attach your O
 
 ## License
 
-The script is dedicated to the public domain under [CC0 1.0](LICENSE). The default sound belongs to Valve and is not covered.
+The script is dedicated to the public domain under [The Unlicense](LICENSE). The default sound belongs to Valve and is not covered.
