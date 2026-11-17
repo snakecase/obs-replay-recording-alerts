@@ -37,13 +37,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Commit subjects since the previous tag, or all commits on the first release,
+          # Commit subjects since the previous tag (or all commits on the first release), oldest first,
           # minus GitHub's default "Update <file>" subjects and repeats.
+          # Commits touching the script come first; docs and workflow changes go under Other.
           prev=$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null || true)
-          changes=$(git log --pretty='- %s' ${prev:+"$prev.."}"$GITHUB_REF_NAME" | awk '!/^- Update [^ ]+$/ && !seen[$0]++')
+          range="${prev:+$prev..}$GITHUB_REF_NAME"
+          subjects() { git log --reverse --pretty='- %s' "$range" "$@" | awk '!/^- Update [^ ]+$/ && !seen[$0]++'; }
+          script=$(subjects -- '*.lua')
+          other=$(subjects | awk 'NR==FNR { s[$0]; next } !($0 in s)' <(printf '%s\n' "$script") -)
+          notes="Download \`Replay-Recording-Alerts-${GITHUB_REF_NAME#v}.zip\` below, extract it, and add \`Replay & Recording Alerts.lua\` in OBS under **Tools → Scripts**. See the [README](https://github.com/${GITHUB_REPOSITORY}#readme) for setup."
+          if [ -n "$script" ]; then notes+=$'\n\n## Script\n'"$script"; fi
+          if [ -n "$other" ]; then notes+=$'\n\n## Other\n'"$other"; fi
           gh release create "$GITHUB_REF_NAME" Replay-Recording-Alerts-*.zip \
             --title "${GITHUB_REF_NAME#v}" \
-            --notes "Download \`Replay-Recording-Alerts-${GITHUB_REF_NAME#v}.zip\` below, extract it, and add \`Replay & Recording Alerts.lua\` in OBS under **Tools → Scripts**. See the [README](https://github.com/${GITHUB_REPOSITORY}#readme) for setup.
-
-          ## Changes
-          $changes"
+            --notes "$notes"
