@@ -16,6 +16,12 @@ jobs:
         with:
           fetch-depth: 0 # full history and tags for the release notes
 
+      # Loads the script with OBS stubbed out: catches syntax errors and runs its built-in asserts.
+      - name: Check script
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq luajit
+          luajit -e "obslua = {} function script_path() return '' end dofile('Replay & Recording Alerts.lua')"
+
       - name: Build zip
         run: |
           git archive --format=zip --prefix="Replay & Recording Alerts/" \
