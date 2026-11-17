@@ -20,13 +20,18 @@ jobs:
       - name: Check script
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq luajit
-          luajit -e "obslua = {} function script_path() return '' end dofile('Replay & Recording Alerts.lua')"
+          luajit -e "obslua = {} function script_path() return '' end dofile('replay-recording-alerts.lua')"
 
       - name: Build zip
         run: |
-          git archive --format=zip --prefix="Replay & Recording Alerts/" \
-            -o "Replay-Recording-Alerts-${GITHUB_REF_NAME#v}.zip" HEAD \
-            "Replay & Recording Alerts.lua" sound_npc_scanner_scanner_photo1.wav README.md LICENSE images
+          # The script gets its display name in the zip: OBS's Scripts window lists file names,
+          # and v1.0.0 users keep their settings because OBS keys them by path.
+          dir="Replay & Recording Alerts"
+          mkdir -p "build/$dir"
+          git archive HEAD replay-recording-alerts.lua sound_npc_scanner_scanner_photo1.wav README.md LICENSE images \
+            | tar -x -C "build/$dir"
+          mv "build/$dir/replay-recording-alerts.lua" "build/$dir/$dir.lua"
+          (cd build && zip -qr "../Replay-Recording-Alerts-${GITHUB_REF_NAME#v}.zip" "$dir")
 
       - name: Publish release
         env:
