@@ -254,7 +254,10 @@ function script_properties()
       obs.obs_property_set_long_description(rec, TRACKS_HINT)
       table.insert(other_props, obs.obs_properties_add_button(box, e.key .. "_test", "Test", function()
         fire(e)
+        -- Returning true makes OBS rebuild the whole page (a visible blink), so only do it when the warning changed.
+        local was = recorded
         refresh_warning()
+        if recorded == was then return false end
         set_shown(e.enabled == true, e.sound ~= false)
         return true
       end))
