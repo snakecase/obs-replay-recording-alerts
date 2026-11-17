@@ -5,8 +5,8 @@ local IS_WINDOWS = ffi.os == "Windows"
 local DEFAULT_SOUND = script_path() .. "sound_npc_scanner_scanner_photo1.wav"
 -- Audio types only: the player sits on an output channel, so a video file would be drawn over the program.
 local AUDIO_FILTER = "Audio files (*.wav *.mp3 *.ogg *.flac *.m4a *.opus)"
--- The bundled sound is at full level; 5% (about -26 dB) is a comfortable default.
-local DEFAULT_VOLUME = 5
+-- The bundled sound is at full level; 10% (-20 dB) is a comfortable default.
+local DEFAULT_VOLUME = 10
 -- OBS itself uses output channels 0-6; high ones keep the players active (needed for playback) without clashing.
 -- Event i uses channel 64 - i, so 56-63.
 local LAST_OUTPUT_CHANNEL = 63
