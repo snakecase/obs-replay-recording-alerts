@@ -28,7 +28,7 @@ jobs:
           # and v1.0.0 users keep their settings because OBS keys them by path.
           dir="Replay & Recording Alerts"
           mkdir -p "build/$dir"
-          git archive HEAD replay-recording-alerts.lua sound_npc_scanner_scanner_photo1.wav README.md LICENSE images \
+          git archive HEAD replay-recording-alerts.lua sound_npc_scanner_scanner_photo1.wav README.md \
             | tar -x -C "build/$dir"
           mv "build/$dir/replay-recording-alerts.lua" "build/$dir/$dir.lua"
           (cd build && zip -qr "../Replay-Recording-Alerts-${GITHUB_REF_NAME#v}.zip" "$dir")
