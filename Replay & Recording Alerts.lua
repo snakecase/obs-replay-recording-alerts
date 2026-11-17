@@ -7,13 +7,16 @@ local DEFAULT_SOUND = script_path() .. "sound_npc_scanner_scanner_photo1.wav"
 local AUDIO_FILTER = "Audio files (*.wav *.mp3 *.ogg *.flac *.m4a *.opus)"
 -- The bundled sound is at full level; 5% (about -26 dB) is a comfortable default.
 local DEFAULT_VOLUME = 5
--- OBS itself uses output channels 0-6; a high one keeps the beep source active (needed for playback) without clashing.
-local OUTPUT_CHANNEL = 63
+-- OBS itself uses output channels 0-6; high ones keep the players active (needed for playback) without clashing.
+-- Event i uses channel 64 - i, so 56-63.
+local LAST_OUTPUT_CHANNEL = 63
 
 -- "sound_file" is kept as the replay-saved key so settings from older versions carry over.
 -- title = section header in the settings, label = toast text.
+-- script_update adds the user's settings to each event: path ("" = no sound), toast, enabled, volume (%),
+-- sound (off = toast only) and tracks (bit mask, 0 = none). script_load adds player, play() adds loaded (its current file).
 local EVENTS = {
-  { key = "sound_file",           title = "Replay Buffer Save",  label = "Replay buffer saved",   id = obs.OBS_FRONTEND_EVENT_REPLAY_BUFFER_SAVED, enabled = true,
+  { key = "sound_file",           title = "Replay Buffer Save",  label = "Replay buffer saved",   id = obs.OBS_FRONTEND_EVENT_REPLAY_BUFFER_SAVED, default_on = true,
     last_file = "obs_frontend_get_last_replay" },
   { key = "sound_replay_started", title = "Replay Buffer Start", label = "Replay buffer started", id = obs.OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTED },
   { key = "sound_replay_stopped", title = "Replay Buffer Stop",  label = "Replay buffer stopped", id = obs.OBS_FRONTEND_EVENT_REPLAY_BUFFER_STOPPED },
@@ -26,29 +29,21 @@ local EVENTS = {
     last_file = "obs_frontend_get_last_screenshot" },
 }
 
-local paths = {}       -- event key -> chosen file ("" = no sound)
-local toasts = {}      -- event key -> show a toast
-local enabled = {}     -- event key -> event is switched on
-local volumes = {}     -- event key -> volume in %
-local sounds = {}      -- event key -> play the sound (off = toast only)
-local tracks = {}      -- event key -> audio tracks to record the sound to (bit mask, 0 = none)
-local beep_source = nil
-local loaded_file = nil
-
-local function play(path, volume, mixers)
-  if beep_source == nil or path == nil or path == "" then return end
-  obs.obs_source_set_volume(beep_source, volume / 100)
+-- Each event has its own player, so events that fire together don't cut each other's sound off.
+local function play(e, mixers)
+  if e.player == nil or e.path == nil or e.path == "" then return end
+  obs.obs_source_set_volume(e.player, e.volume / 100)
   -- No tracks = monitoring only: OBS's monitor plays the raw audio regardless of tracks.
-  obs.obs_source_set_audio_mixers(beep_source, mixers)
-  if path == loaded_file then
-    obs.obs_source_media_restart(beep_source)
+  obs.obs_source_set_audio_mixers(e.player, mixers)
+  if e.path == e.loaded then
+    obs.obs_source_media_restart(e.player)
   else
     -- Changing the file on an active media source starts playing it immediately.
     local s = obs.obs_data_create()
-    obs.obs_data_set_string(s, "local_file", path)
-    obs.obs_source_update(beep_source, s)
+    obs.obs_data_set_string(s, "local_file", e.path)
+    obs.obs_source_update(e.player, s)
     obs.obs_data_release(s)
-    loaded_file = path
+    e.loaded = e.path
   end
 end
 
@@ -212,12 +207,12 @@ local TRACKS_HINT = "Record this sound to an audio track, even if the Monitoring
 local function fire(e)
   -- Desktop Audio already records the sound then, so the track choice is hidden and ignored.
   local by_desktop = monitor_is_recorded()
-  local mixers = by_desktop and 0 or tracks[e.key]
+  local mixers = by_desktop and 0 or e.tracks
   print(("%s: sound=%s volume=%d%% tracks=0x%X recorded_by_desktop_audio=%s toast=%s"):format(e.title,
-    sounds[e.key] and (paths[e.key] ~= "" and paths[e.key] or "none") or "off",
-    volumes[e.key], mixers, tostring(by_desktop), tostring(toasts[e.key])))
-  if sounds[e.key] then play(paths[e.key], volumes[e.key], mixers) end
-  if toasts[e.key] then toast(e) end
+    e.sound and (e.path ~= "" and e.path or "none") or "off",
+    e.volume, mixers, tostring(by_desktop), tostring(e.toast)))
+  if e.sound then play(e, mixers) end
+  if e.toast then toast(e) end
 end
 
 function script_description()
@@ -260,7 +255,7 @@ function script_properties()
       table.insert(other_props, obs.obs_properties_add_button(box, e.key .. "_test", "Test", function()
         fire(e)
         refresh_warning()
-        set_shown(enabled[e.key] == true, sounds[e.key] ~= false)
+        set_shown(e.enabled == true, e.sound ~= false)
         return true
       end))
       local function on_toggle(_, _, settings)
@@ -271,7 +266,7 @@ function script_properties()
       obs.obs_property_set_modified_callback(toggle, on_toggle)
       obs.obs_property_set_modified_callback(sound_toggle, on_toggle)
       -- The callbacks don't run when the script is refreshed, so set the starting state here too.
-      set_shown(enabled[e.key] == true, sounds[e.key] ~= false)
+      set_shown(e.enabled == true, e.sound ~= false)
       obs.obs_properties_add_group(props, e.key .. "_group", e.title, obs.OBS_GROUP_NORMAL, box)
     end
   end
@@ -283,24 +278,24 @@ function script_defaults(settings)
     obs.obs_data_set_default_string(settings, e.key, DEFAULT_SOUND)
     obs.obs_data_set_default_int(settings, e.key .. "_volume", DEFAULT_VOLUME)
     obs.obs_data_set_default_bool(settings, e.key .. "_sound", true)
-    obs.obs_data_set_default_bool(settings, e.key .. "_enabled", e.enabled == true)
+    obs.obs_data_set_default_bool(settings, e.key .. "_enabled", e.default_on == true)
   end
 end
 
 function script_update(settings)
   for _, e in ipairs(EVENTS) do
-    paths[e.key] = obs.obs_data_get_string(settings, e.key)
-    toasts[e.key] = obs.obs_data_get_bool(settings, e.key .. "_toast")
-    enabled[e.key] = obs.obs_data_get_bool(settings, e.key .. "_enabled")
-    volumes[e.key] = obs.obs_data_get_int(settings, e.key .. "_volume")
-    sounds[e.key] = obs.obs_data_get_bool(settings, e.key .. "_sound")
-    tracks[e.key] = obs.obs_data_get_int(settings, e.key .. "_tracks")
+    e.path = obs.obs_data_get_string(settings, e.key)
+    e.toast = obs.obs_data_get_bool(settings, e.key .. "_toast")
+    e.enabled = obs.obs_data_get_bool(settings, e.key .. "_enabled")
+    e.volume = obs.obs_data_get_int(settings, e.key .. "_volume")
+    e.sound = obs.obs_data_get_bool(settings, e.key .. "_sound")
+    e.tracks = obs.obs_data_get_int(settings, e.key .. "_tracks")
   end
 end
 
 function on_event(event)
   for _, e in ipairs(EVENTS) do
-    if e.id ~= nil and event == e.id and enabled[e.key] then fire(e) end
+    if e.id ~= nil and event == e.id and e.enabled then fire(e) end
   end
 end
 
@@ -309,16 +304,20 @@ function script_load(settings)
   obs.obs_data_set_bool(s, "is_local_file", true)
   obs.obs_data_set_bool(s, "looping", false)
   obs.obs_data_set_bool(s, "close_when_inactive", false)
-  beep_source = obs.obs_source_create_private("ffmpeg_source", "Event beep", s)
-  obs.obs_data_release(s)
-  -- OBS 33 dropped "monitor only" (it now means monitor and output), so monitoring is always on and
-  -- play() keeps the sounds out of recordings by clearing the source's audio tracks instead.
-  if obs.obs_source_set_monitoring_enabled then
-    obs.obs_source_set_monitoring_enabled(beep_source, true)
-  else
-    obs.obs_source_set_monitoring_type(beep_source, obs.OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT)
+  for i, e in ipairs(EVENTS) do
+    if e.id ~= nil then
+      e.player = obs.obs_source_create_private("ffmpeg_source", "Event beep: " .. e.title, s)
+      -- OBS 33 dropped "monitor only" (it now means monitor and output), so monitoring is always on and
+      -- play() keeps the sounds out of recordings by clearing the source's audio tracks instead.
+      if obs.obs_source_set_monitoring_enabled then
+        obs.obs_source_set_monitoring_enabled(e.player, true)
+      else
+        obs.obs_source_set_monitoring_type(e.player, obs.OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT)
+      end
+      obs.obs_set_output_source(LAST_OUTPUT_CHANNEL + 1 - i, e.player)
+    end
   end
-  obs.obs_set_output_source(OUTPUT_CHANNEL, beep_source)
+  obs.obs_data_release(s)
 
   obs.signal_handler_connect(obs.obs_get_signal_handler(), "deduplication_changed", on_dedup)
   recheck_dedup()
@@ -331,10 +330,12 @@ end
 
 function script_unload()
   obs.signal_handler_disconnect(obs.obs_get_signal_handler(), "deduplication_changed", on_dedup)
-  if beep_source ~= nil then
-    obs.obs_set_output_source(OUTPUT_CHANNEL, nil)
-    obs.obs_source_release(beep_source)
-    beep_source = nil
+  for i, e in ipairs(EVENTS) do
+    if e.player ~= nil then
+      obs.obs_set_output_source(LAST_OUTPUT_CHANNEL + 1 - i, nil)
+      obs.obs_source_release(e.player)
+      e.player, e.loaded = nil, nil
+    end
   end
 end
 
